@@ -14,13 +14,15 @@ interface ChatInterfaceProps {
   stepId?: string;
   onGenerateSteps?: () => void;
   showGenerateButton?: boolean;
+  initialMessage?: string;
 }
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ 
   projectId, 
   stepId, 
   onGenerateSteps,
-  showGenerateButton = false 
+  showGenerateButton = false,
+  initialMessage
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -58,6 +60,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
     const interval = setInterval(checkConnection, 1000);
 
+    // Show initial AI message if provided
+    if (initialMessage) {
+      const initialAIMessage: Message = {
+        id: 'initial_message',
+        type: 'ai',
+        content: initialMessage,
+        timestamp: new Date()
+      };
+      setMessages([initialAIMessage]);
+    }
+
     return () => {
       clearInterval(interval);
       if (wsClient.current) {
@@ -65,7 +78,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         wsClient.current.disconnect();
       }
     };
-  }, []);
+  }, [initialMessage]);
 
   useEffect(() => {
     // Scroll to bottom when new messages arrive
@@ -119,13 +132,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       </div>
 
       <div className="chat-messages">
-        {messages.length === 0 && (
-          <div className="welcome-message">
-            <p>👋 Hi! I'm your DIY Bot assistant. I'm here to help you plan and execute your project step by step.</p>
-            <p>Feel free to ask me questions about tools, materials, or any challenges you're facing!</p>
-          </div>
-        )}
-        
         {messages.map((message) => (
           <div key={message.id} className={`message ${message.type}`}>
             <div className="message-content">

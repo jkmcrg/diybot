@@ -135,10 +135,14 @@ async def create_project(request: ProjectCreateRequest):
         )
         mcp_server.projects_db[project_id] = new_project
         
-        # Get AI response for initial planning questions
+        # Get AI response for initial project discovery - analyze project and determine likely tools needed
         ai_response = await ollama_client.chat_with_mcp(
-            f"I just created a new project: {request.description}. Please ask clarifying questions to understand the project requirements, check my tool inventory, and help me plan this project step by step.",
-            context={"project_id": project_id},
+            f"A user wants to start this DIY project: '{request.description}'\n\nYour task:\n1. FIRST: Analyze this project type and think about what tools are typically needed\n2. Check their current toolroom inventory to see what they already have\n3. Ask SPECIFIC questions about the tools they'll need for THIS project\n\nFor example:\n- If it's plumbing: ask about wrenches, plungers, pipe tools\n- If it's woodworking: ask about saws, drills, measuring tools\n- If it's electrical: ask about wire strippers, voltage testers, etc.\n\nBe project-specific in your questions. Don't ask generic questions - focus on the exact tools this project will require. When they confirm they have tools, add them to their inventory immediately.",
+            context={
+                "project_id": project_id, 
+                "phase": "discovery",
+                "project_description": request.description
+            },
             mcp_server=mcp_server
         )
         
@@ -146,6 +150,33 @@ async def create_project(request: ProjectCreateRequest):
             "project_id": project_id,
             "ai_response": ai_response,
             "status": "created"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/tools")
+async def add_tool(tool_data: dict):
+    """Add a tool to inventory (for AI to call during discovery)"""
+    try:
+        import uuid
+        from models import Tool, ToolCondition
+        
+        tool_id = str(uuid.uuid4())
+        new_tool = Tool(
+            id=tool_id,
+            name=tool_data.get("name", "Unknown Tool"),
+            category=tool_data.get("category", "General"),
+            quantity=tool_data.get("quantity", 1),
+            condition=ToolCondition(tool_data.get("condition", "working")),
+            icon_keywords=tool_data.get("icon_keywords", []),
+            properties=tool_data.get("properties", {})
+        )
+        mcp_server.tools_db[tool_id] = new_tool
+        
+        return {
+            "tool_id": tool_id,
+            "message": f"Added {new_tool.name} to toolroom",
+            "tool": new_tool.model_dump()
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -10,43 +10,59 @@ class OllamaClient:
     
     async def chat_with_mcp(self, message: str, context: Optional[Dict] = None, mcp_server=None) -> str:
         """
-        Chat with Ollama and allow it to call MCP tools for state management
+        Chat with Ollama with enhanced MCP integration for tool discovery
         """
         try:
-            # System prompt for DIY Bot
-            system_prompt = """You are DIY Bot, an intelligent assistant that helps users plan and execute DIY projects. 
+            # Enhanced system prompt for project discovery phase
+            if context and context.get("phase") == "discovery":
+                system_prompt = """You are DIY Bot in PROJECT DISCOVERY mode. Your job is to thoroughly understand the user's DIY project before generating any steps.
+
+DISCOVERY PHASE GOALS:
+1. Ask specific questions about their project scope and requirements
+2. Understand what tools they'll need (don't assume - ask!)
+3. When they mention tools, check their toolroom inventory
+4. Add any new tools they mention to their inventory
+5. Only suggest step generation when you have enough information
+
+IMPORTANT: You have direct access to their toolroom through these functions:
+- To check existing tools: Look up their current toolroom inventory
+- To add tools they mention: Add them to their toolroom immediately
+- To verify tool availability: Check quantities and conditions
+
+Be conversational and thorough. Ask follow-up questions. When they mention having a tool, add it to their inventory and confirm it's been added.
+
+Current project: {context.get('project_description', 'No description yet')}
+Project ID: {context.get('project_id', 'Unknown')}
+
+Focus on discovery, not step generation yet!"""
+            else:
+                system_prompt = """You are DIY Bot, an intelligent assistant that helps users plan and execute DIY projects. 
 
 Your capabilities include:
-- Analyzing project requirements and breaking them into steps
+- Analyzing project requirements and breaking them into steps  
 - Managing tool inventory through direct database access
 - Discovering and cataloging house objects during conversation
 - Providing step-by-step guidance with required tools
 - Handling tool breakage and replacement during projects
 
-You have access to several tools for state management:
-- get_toolroom_inventory: Check what tools the user owns
-- add_tool_to_inventory: Add new tools when user acquires them
-- update_tool_quantity: Modify tool quantities (when used up or broken)
-- update_tool_condition: Change tool condition (working/broken/needs_maintenance)
-- add_house_object: Add house objects/appliances discovered during conversation
-- get_house_inventory: Check existing house objects
-- create_project: Create new DIY projects
-- add_project_steps: Generate step-by-step instructions
-- get_projects: View all projects
-
-When a user describes a project:
-1. Ask clarifying questions to understand specifics
-2. Check existing tool inventory
-3. Identify required tools and check availability
-4. Create shopping list for missing tools
-5. Once ready, create the project and generate steps
-
 Always be conversational and helpful. Announce when you're updating inventories or making assumptions about the user's tools/house."""
 
-            # Build conversation context
+            # Build conversation context with MCP function awareness
             messages = [
                 {"role": "system", "content": system_prompt}
             ]
+            
+            # Add current toolroom inventory to context
+            if mcp_server:
+                current_tools = list(mcp_server.tools_db.values())
+                tools_summary = f"Current toolroom inventory: {len(current_tools)} tools including: " + ", ".join([f"{tool.name} (qty: {tool.quantity}, condition: {tool.condition})" for tool in current_tools[:3]])
+                if len(current_tools) > 3:
+                    tools_summary += f" and {len(current_tools) - 3} more tools."
+                
+                messages.append({
+                    "role": "system", 
+                    "content": tools_summary
+                })
             
             # Add project context if available
             if context:
@@ -72,9 +88,19 @@ Always be conversational and helpful. Announce when you're updating inventories 
                 result = response.json()
                 ai_response = result["message"]["content"]
                 
-                # For now, return the AI response
-                # TODO: Implement proper MCP tool calling integration
-                return ai_response
+                # Enhanced response with tool inventory awareness
+                enhanced_response = ai_response
+                
+                # If this is discovery phase and user mentions tools, suggest adding them
+                if context and context.get("phase") == "discovery" and mcp_server:
+                    # Simple keyword detection for tool mentions
+                    tool_keywords = ["screwdriver", "hammer", "drill", "wrench", "pliers", "saw", "level", "tape measure", "plunger", "snake"]
+                    mentioned_tools = [tool for tool in tool_keywords if tool.lower() in message.lower()]
+                    
+                    if mentioned_tools:
+                        enhanced_response += f"\n\nI notice you mentioned: {', '.join(mentioned_tools)}. Let me add these to your toolroom inventory so I can track them for this project."
+                
+                return enhanced_response
             else:
                 return f"Error communicating with AI: {response.status_code}"
                 

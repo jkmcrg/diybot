@@ -48,6 +48,7 @@ class Project(BaseModel):
     current_step: Optional[int] = None
     total_steps: Optional[int] = None
     steps: List[ProjectStep] = []
+    initial_ai_message: Optional[str] = None
 
 class ProjectCreateRequest(BaseModel):
     description: str

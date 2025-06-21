@@ -12,6 +12,7 @@ const ProjectPlanningPage: React.FC<ProjectPlanningPageProps> = () => {
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showGenerateButton, setShowGenerateButton] = useState(false);
+  const [initialMessage, setInitialMessage] = useState<string>('');
 
   useEffect(() => {
     const loadProject = async () => {
@@ -106,8 +107,13 @@ const ProjectPlanningPage: React.FC<ProjectPlanningPageProps> = () => {
       <main className="planning-content">
         <div className="planning-section">
           <div className="section-header">
-            <h2>📋 Project Planning</h2>
-            <p>Let's gather all the information needed for your project. I'll ask questions about your specific requirements, check your tool inventory, and help you prepare everything needed.</p>
+            <h2>🔍 Project Discovery</h2>
+            <p>I'm gathering information about your project. I'll ask specific questions to understand your needs and help you identify the right tools. When you mention tools you have, I'll add them to your toolroom inventory.</p>
+            {showGenerateButton && (
+              <div className="ready-indicator">
+                <span className="ready-badge">✅ Ready to generate steps!</span>
+              </div>
+            )}
           </div>
 
           <div className="chat-container">
@@ -121,7 +127,7 @@ const ProjectPlanningPage: React.FC<ProjectPlanningPageProps> = () => {
 
         <aside className="planning-sidebar">
           <div className="info-panel">
-            <h3>🔧 Planning Checklist</h3>
+            <h3>🔍 Discovery Process</h3>
             <ul className="checklist">
               <li>
                 <span className="check">✓</span>
@@ -129,34 +135,35 @@ const ProjectPlanningPage: React.FC<ProjectPlanningPageProps> = () => {
               </li>
               <li>
                 <span className="check pending">○</span>
-                Gather specific requirements
+                Understand project scope
               </li>
               <li>
                 <span className="check pending">○</span>
-                Check tool inventory
+                Identify required tools
               </li>
               <li>
                 <span className="check pending">○</span>
-                Identify missing tools
+                Add tools to inventory
               </li>
               <li>
                 <span className="check pending">○</span>
-                Create shopping list
+                Verify project readiness
               </li>
               <li>
                 <span className="check pending">○</span>
-                Ready for step generation
+                Generate detailed steps
               </li>
             </ul>
           </div>
 
           <div className="info-panel">
-            <h3>💡 Tips</h3>
+            <h3>💡 Discovery Tips</h3>
             <ul className="tips-list">
-              <li>Be specific about your project details</li>
-              <li>Mention any constraints or preferences</li>
-              <li>Ask about tool alternatives if needed</li>
-              <li>Don't hesitate to ask questions!</li>
+              <li>Tell me about any tools you already have</li>
+              <li>Mention your experience level with DIY</li>
+              <li>Describe the current condition/setup</li>
+              <li>Ask about alternatives if unsure</li>
+              <li>I'll add tools to your inventory as we chat</li>
             </ul>
           </div>
         </aside>
