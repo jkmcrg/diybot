@@ -6,11 +6,40 @@ import ToolroomModal from './components/ToolroomModal'
 import ProjectsModal from './components/ProjectsModal'
 import './App.css'
 
+interface Tool {
+  id: string;
+  name: string;
+  category: string;
+  quantity: number;
+  condition: 'working' | 'broken' | 'needs_maintenance';
+  iconKeywords?: string[];
+  properties?: Record<string, string>;
+}
+
+interface HouseObject {
+  id: string;
+  name: string;
+  location: string;
+  type: string;
+  properties?: Record<string, string>;
+}
+
+interface Project {
+  id: string;
+  title: string;
+  description: string;
+  status: 'planning' | 'in_progress' | 'completed' | 'paused';
+  createdAt: string;
+  completedAt?: string;
+  currentStep?: number;
+  totalSteps?: number;
+}
+
 function App() {
   const [activeModal, setActiveModal] = useState<'house' | 'toolroom' | 'projects' | null>(null);
   
   // Mock data - will be replaced with real data from API
-  const mockHouseObjects = [
+  const mockHouseObjects: HouseObject[] = [
     {
       id: '1',
       name: 'Kitchen Sink',
@@ -20,13 +49,13 @@ function App() {
     }
   ];
 
-  const mockTools = [
+  const mockTools: Tool[] = [
     {
       id: '1',
       name: 'Socket Wrench Set',
       category: 'Hand Tools',
       quantity: 1,
-      condition: 'working' as const,
+      condition: 'working',
       properties: { size: 'Metric', pieces: '42' }
     },
     {
@@ -34,17 +63,17 @@ function App() {
       name: 'Cutoff Wheels',
       category: 'Consumables',
       quantity: 3,
-      condition: 'working' as const,
+      condition: 'working',
       properties: { size: '4.5 inch', grit: '80' }
     }
   ];
 
-  const mockProjects = [
+  const mockProjects: Project[] = [
     {
       id: '1',
       title: 'Replace Kitchen Sink Faucet',
       description: 'Replace old faucet with new pull-down model',
-      status: 'in_progress' as const,
+      status: 'in_progress',
       createdAt: '2024-01-15',
       currentStep: 2,
       totalSteps: 6
