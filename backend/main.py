@@ -65,15 +65,32 @@ async def get_projects():
 async def create_project(request: ProjectCreateRequest):
     """Create a new project"""
     try:
-        # Use AI to analyze the project and create it
+        # Create a project title from the description
+        title = request.description[:50] + "..." if len(request.description) > 50 else request.description
+        
+        # Create project through MCP server directly
+        import uuid
+        project_id = str(uuid.uuid4())
+        
+        # Create project in MCP server database
+        from models import Project, ProjectStatus
+        from datetime import datetime
+        
+        new_project = Project(
+            id=project_id,
+            title=title,
+            description=request.description,
+            status=ProjectStatus.PLANNING,
+            created_at=datetime.now().isoformat()
+        )
+        mcp_server.projects_db[project_id] = new_project
+        
+        # Get AI response for initial planning questions
         ai_response = await ollama_client.chat_with_mcp(
-            f"Create a new project: {request.description}. Ask any clarifying questions needed.",
+            f"I just created a new project: {request.description}. Please ask clarifying questions to understand the project requirements, check my tool inventory, and help me plan this project step by step.",
+            context={"project_id": project_id},
             mcp_server=mcp_server
         )
-        
-        # For now, create a basic project
-        # TODO: Implement proper AI integration with MCP tool calling
-        project_id = "temp_project_id"
         
         return {
             "project_id": project_id,

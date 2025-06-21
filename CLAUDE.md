@@ -125,13 +125,56 @@ ollama serve               # Start Ollama server (if not running)
 - [ ] Add Noun Project icon integration
 - [ ] Build step-by-step workflow with inline chat
 
-## Testing
+## Starting the Application
 
-Run the application:
+### Full Startup (First Time)
 1. Start Neo4j: `brew services start neo4j`
-2. Start backend: `cd backend && source venv/bin/activate && python main.py`
+2. Start backend: `cd backend && source venv/bin/activate && uvicorn main:app --reload --host 0.0.0.0 --port 8000`
 3. Start frontend: `cd frontend && npm run dev`
 4. Visit: http://localhost:5173
+
+### Restarting After Code Changes
+
+**Kill Running Servers:**
+```bash
+# Stop backend
+pkill -f "uvicorn main:app"
+
+# Stop frontend  
+pkill -f "vite"
+
+# Or use Ctrl+C in their respective terminals
+```
+
+**Restart Backend (Required after backend code changes):**
+```bash
+cd backend
+source venv/bin/activate   # or . venv/bin/activate
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+
+**Restart Frontend (Required after frontend code changes):**
+```bash
+cd frontend
+npm run dev
+```
+
+**Quick Restart Both:**
+```bash
+# Kill both servers
+pkill -f "uvicorn main:app" && pkill -f "vite"
+
+# Start backend in background
+cd backend && . venv/bin/activate && uvicorn main:app --reload --host 0.0.0.0 --port 8000 &
+
+# Start frontend
+cd frontend && npm run dev
+```
+
+### Troubleshooting
+- If you see `temp_project_id` instead of real project IDs, restart the backend
+- If WebSocket connection fails, check that backend is running on port 8000
+- If frontend shows 404 API errors, verify backend is accessible at http://localhost:8000
 
 ## Notes
 
