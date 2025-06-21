@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import LandingPage from './components/LandingPage'
 import Modal from './components/Modal'
 import HouseModal from './components/HouseModal'
 import ToolroomModal from './components/ToolroomModal'
 import ProjectsModal from './components/ProjectsModal'
+import { api } from './api'
 import './App.css'
 
 interface Tool {
@@ -37,52 +38,53 @@ interface Project {
 
 function App() {
   const [activeModal, setActiveModal] = useState<'house' | 'toolroom' | 'projects' | null>(null);
-  
-  // Mock data - will be replaced with real data from API
-  const mockHouseObjects: HouseObject[] = [
-    {
-      id: '1',
-      name: 'Kitchen Sink',
-      location: 'Kitchen',
-      type: 'Fixture',
-      properties: { brand: 'Kohler', model: 'K-3380' }
-    }
-  ];
+  const [houseObjects, setHouseObjects] = useState<HouseObject[]>([]);
+  const [tools, setTools] = useState<Tool[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const mockTools: Tool[] = [
-    {
-      id: '1',
-      name: 'Socket Wrench Set',
-      category: 'Hand Tools',
-      quantity: 1,
-      condition: 'working',
-      properties: { size: 'Metric', pieces: '42' }
-    },
-    {
-      id: '2',
-      name: 'Cutoff Wheels',
-      category: 'Consumables',
-      quantity: 3,
-      condition: 'working',
-      properties: { size: '4.5 inch', grit: '80' }
-    }
-  ];
+  // Load data from API on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [toolsData, houseData, projectsData] = await Promise.all([
+          api.getTools(),
+          api.getHouseObjects(),
+          api.getProjects()
+        ]);
+        
+        setTools(toolsData);
+        setHouseObjects(houseData);
+        setProjects(projectsData);
+      } catch (error) {
+        console.error('Failed to load data:', error);
+        // Keep empty arrays as fallback
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const mockProjects: Project[] = [
-    {
-      id: '1',
-      title: 'Replace Kitchen Sink Faucet',
-      description: 'Replace old faucet with new pull-down model',
-      status: 'in_progress',
-      createdAt: '2024-01-15',
-      currentStep: 2,
-      totalSteps: 6
-    }
-  ];
+    loadData();
+  }, []);
 
-  const handleStartProject = (projectDescription: string) => {
-    console.log('Starting project:', projectDescription);
-    // TODO: Implement project creation logic
+  const handleStartProject = async (projectDescription: string) => {
+    try {
+      setLoading(true);
+      const result = await api.createProject(projectDescription);
+      console.log('Project created:', result);
+      
+      // Reload projects to get updated data
+      const updatedProjects = await api.getProjects();
+      setProjects(updatedProjects);
+      
+      // TODO: Navigate to project planning view or show AI response
+      alert(`Project created! AI response: ${result.ai_response}`);
+    } catch (error) {
+      console.error('Failed to create project:', error);
+      alert('Failed to create project. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleOpenModal = (modalType: 'house' | 'toolroom' | 'projects') => {
@@ -99,6 +101,14 @@ function App() {
     // TODO: Navigate to project view
   };
 
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <p>Loading DIY Bot...</p>
+      </div>
+    );
+  }
+
   return (
     <>
       <LandingPage 
@@ -111,7 +121,7 @@ function App() {
         onClose={handleCloseModal}
         title="House Inventory"
       >
-        <HouseModal houseObjects={mockHouseObjects} />
+        <HouseModal houseObjects={houseObjects} />
       </Modal>
 
       <Modal
@@ -119,7 +129,7 @@ function App() {
         onClose={handleCloseModal}
         title="Toolroom"
       >
-        <ToolroomModal tools={mockTools} />
+        <ToolroomModal tools={tools} />
       </Modal>
 
       <Modal
@@ -128,7 +138,7 @@ function App() {
         title="Projects"
       >
         <ProjectsModal 
-          projects={mockProjects}
+          projects={projects}
           onSelectProject={handleSelectProject}
         />
       </Modal>

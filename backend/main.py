@@ -1,7 +1,10 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 import json
+from models import ProjectCreateRequest, Tool, HouseObject, Project
+from mcp_server import mcp_server
+from ollama_client import ollama_client
 
 app = FastAPI(title="DIY Bot API", version="1.0.0")
 
@@ -43,6 +46,43 @@ async def root():
 async def health_check():
     return {"status": "healthy"}
 
+@app.get("/api/tools")
+async def get_tools():
+    """Get all tools from inventory"""
+    return list(mcp_server.tools_db.values())
+
+@app.get("/api/house-objects")
+async def get_house_objects():
+    """Get all house objects"""
+    return list(mcp_server.house_objects_db.values())
+
+@app.get("/api/projects")
+async def get_projects():
+    """Get all projects"""
+    return list(mcp_server.projects_db.values())
+
+@app.post("/api/projects")
+async def create_project(request: ProjectCreateRequest):
+    """Create a new project"""
+    try:
+        # Use AI to analyze the project and create it
+        ai_response = await ollama_client.chat_with_mcp(
+            f"Create a new project: {request.description}. Ask any clarifying questions needed.",
+            mcp_server=mcp_server
+        )
+        
+        # For now, create a basic project
+        # TODO: Implement proper AI integration with MCP tool calling
+        project_id = "temp_project_id"
+        
+        return {
+            "project_id": project_id,
+            "ai_response": ai_response,
+            "status": "created"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
@@ -50,10 +90,18 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             data = await websocket.receive_text()
             message_data = json.loads(data)
-            # Echo back for now - will integrate with AI later
+            
+            # Get AI response
+            ai_response = await ollama_client.chat_with_mcp(
+                message_data.get('content', ''),
+                context=message_data.get('context'),
+                mcp_server=mcp_server
+            )
+            
             response = {
-                "type": "response",
-                "content": f"Received: {message_data.get('content', '')}"
+                "type": "ai_response",
+                "content": ai_response,
+                "timestamp": json.dumps({"timestamp": "now"})  # TODO: Add proper timestamp
             }
             await manager.send_personal_message(json.dumps(response), websocket)
     except WebSocketDisconnect:
