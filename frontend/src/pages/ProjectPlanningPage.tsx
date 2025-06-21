@@ -45,14 +45,17 @@ const ProjectPlanningPage: React.FC<ProjectPlanningPageProps> = () => {
   const handleGenerateSteps = async () => {
     try {
       setLoading(true);
-      // TODO: Implement step generation API call
       console.log('Generating steps for project:', projectId);
       
-      // For now, navigate to execution page
-      // In real implementation, this would call the AI to generate steps
+      // Call the AI to generate project-specific steps
+      const result = await api.generateSteps(projectId!);
+      console.log('Steps generated:', result);
+      
+      // Navigate to execution page
       navigate(`/project/${projectId}/execute`);
     } catch (error) {
       console.error('Failed to generate steps:', error);
+      alert('Failed to generate steps. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -85,22 +88,20 @@ const ProjectPlanningPage: React.FC<ProjectPlanningPageProps> = () => {
 
   return (
     <div className="project-planning-page">
-      <header className="planning-header">
-        <div className="header-content">
-          <button className="back-button" onClick={handleBackToHome}>
-            ← Back to Home
-          </button>
-          <div className="project-info">
-            <h1>{project.title}</h1>
-            <p className="project-description">{project.description}</p>
-            <div className="project-status">
-              <span className={`status-badge ${project.status}`}>
-                {project.status.replace('_', ' ').toUpperCase()}
-              </span>
-            </div>
+      <div className="project-header">
+        <button className="back-button" onClick={handleBackToHome}>
+          ← Back to Home
+        </button>
+        <div className="project-info">
+          <h1>{project.title}</h1>
+          <p className="project-description">{project.description}</p>
+          <div className="project-status">
+            <span className={`status-badge ${project.status}`}>
+              {project.status.replace('_', ' ').toUpperCase()}
+            </span>
           </div>
         </div>
-      </header>
+      </div>
 
       <main className="planning-content">
         <div className="planning-section">

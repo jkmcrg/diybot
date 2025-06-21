@@ -54,6 +54,22 @@ export const api = {
     }
     return response.json();
   },
+
+  // Generate steps for a project
+  generateSteps: async (projectId: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/generate-steps`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to generate steps: ${response.statusText}`);
+    }
+    
+    return response.json();
+  },
 };
 
 export class WebSocketClient {

@@ -1,0 +1,110 @@
+.home-page {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.loading-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 60vh;
+  font-size: 1.2rem;
+  color: #6c757d;
+}
+
+.main-content {
+  width: 100%;
+  max-width: 600px;
+  text-align: center;
+}
+
+.project-prompt h1 {
+  margin-bottom: 2rem;
+  color: #2c3e50;
+  font-size: 2.5rem;
+  font-weight: 300;
+  line-height: 1.2;
+}
+
+.project-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.project-input {
+  padding: 1.25rem;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  transition: border-color 0.2s ease;
+  font-family: inherit;
+}
+
+.project-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.start-project-button {
+  padding: 1.25rem 2rem;
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 10px rgba(40, 167, 69, 0.3);
+}
+
+.start-project-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+}
+
+.start-project-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.start-project-button:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+@media (max-width: 768px) {
+  .home-page {
+    padding: 1rem;
+  }
+  
+  .project-prompt h1 {
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .project-form {
+    padding: 1.5rem;
+  }
+  
+  .project-input {
+    padding: 1rem;
+    font-size: 1rem;
+  }
+  
+  .start-project-button {
+    padding: 1rem 1.5rem;
+    font-size: 1.1rem;
+  }
+}

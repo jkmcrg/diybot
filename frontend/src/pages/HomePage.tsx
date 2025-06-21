@@ -1,72 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import LandingPage from '../components/LandingPage'
-import Modal from '../components/Modal'
-import HouseModal from '../components/HouseModal'
-import ToolroomModal from '../components/ToolroomModal'
-import ProjectsModal from '../components/ProjectsModal'
 import { api } from '../api'
-
-interface Tool {
-  id: string;
-  name: string;
-  category: string;
-  quantity: number;
-  condition: 'working' | 'broken' | 'needs_maintenance';
-  iconKeywords?: string[];
-  properties?: Record<string, string>;
-}
-
-interface HouseObject {
-  id: string;
-  name: string;
-  location: string;
-  type: string;
-  properties?: Record<string, string>;
-}
-
-interface Project {
-  id: string;
-  title: string;
-  description: string;
-  status: 'planning' | 'in_progress' | 'completed' | 'paused';
-  createdAt: string;
-  completedAt?: string;
-  currentStep?: number;
-  totalSteps?: number;
-}
+import './HomePage.css'
 
 function HomePage() {
   const navigate = useNavigate();
-  const [activeModal, setActiveModal] = useState<'house' | 'toolroom' | 'projects' | null>(null);
-  const [houseObjects, setHouseObjects] = useState<HouseObject[]>([]);
-  const [tools, setTools] = useState<Tool[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // Load data from API on mount
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [toolsData, houseData, projectsData] = await Promise.all([
-          api.getTools(),
-          api.getHouseObjects(),
-          api.getProjects()
-        ]);
-        
-        setTools(toolsData);
-        setHouseObjects(houseData);
-        setProjects(projectsData);
-      } catch (error) {
-        console.error('Failed to load data:', error);
-        // Keep empty arrays as fallback
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
+  const [projectInput, setProjectInput] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleStartProject = async (projectDescription: string) => {
     try {
@@ -74,12 +14,7 @@ function HomePage() {
       const result = await api.createProject(projectDescription);
       console.log('Project created:', result);
       
-      // Reload projects to get updated data
-      const updatedProjects = await api.getProjects();
-      setProjects(updatedProjects);
-      
-      // Navigate to project planning page instead of showing alert
-      // For now, use a temporary project ID - in real implementation, use result.project_id
+      // Navigate to project planning page
       const projectId = result.project_id || 'temp_project_' + Date.now();
       navigate(`/project/${projectId}/plan`);
     } catch (error) {
@@ -90,67 +25,47 @@ function HomePage() {
     }
   };
 
-  const handleOpenModal = (modalType: 'house' | 'toolroom' | 'projects') => {
-    setActiveModal(modalType);
-  };
-
-  const handleCloseModal = () => {
-    setActiveModal(null);
-  };
-
-  const handleSelectProject = (projectId: string) => {
-    setActiveModal(null);
-    // Navigate to project planning or execution based on project status
-    const project = projects.find(p => p.id === projectId);
-    if (project?.status === 'planning') {
-      navigate(`/project/${projectId}/plan`);
-    } else {
-      navigate(`/project/${projectId}/execute`);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (projectInput.trim()) {
+      handleStartProject(projectInput.trim());
+      setProjectInput('');
     }
   };
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <p>Loading DIY Bot...</p>
+      <div className="loading-container">
+        <p>Creating your project...</p>
       </div>
     );
   }
 
   return (
-    <>
-      <LandingPage 
-        onStartProject={handleStartProject}
-        onOpenModal={handleOpenModal}
-      />
-      
-      <Modal
-        isOpen={activeModal === 'house'}
-        onClose={handleCloseModal}
-        title="House Inventory"
-      >
-        <HouseModal houseObjects={houseObjects} />
-      </Modal>
-
-      <Modal
-        isOpen={activeModal === 'toolroom'}
-        onClose={handleCloseModal}
-        title="Toolroom"
-      >
-        <ToolroomModal tools={tools} />
-      </Modal>
-
-      <Modal
-        isOpen={activeModal === 'projects'}
-        onClose={handleCloseModal}
-        title="Projects"
-      >
-        <ProjectsModal 
-          projects={projects}
-          onSelectProject={handleSelectProject}
-        />
-      </Modal>
-    </>
+    <div className="home-page">
+      <div className="main-content">
+        <div className="project-prompt">
+          <h1>What would you like to DIY today?</h1>
+          <form onSubmit={handleSubmit} className="project-form">
+            <input
+              type="text"
+              value={projectInput}
+              onChange={(e) => setProjectInput(e.target.value)}
+              placeholder="Describe your project (e.g., 'unclog my kitchen sink', 'build a bookshelf', 'fix squeaky door')"
+              className="project-input"
+              autoFocus
+            />
+            <button 
+              type="submit" 
+              className="start-project-button"
+              disabled={!projectInput.trim() || loading}
+            >
+              Start Project
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
   );
 }
 

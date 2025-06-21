@@ -61,6 +61,56 @@ async def get_projects():
     """Get all projects"""
     return list(mcp_server.projects_db.values())
 
+@app.post("/api/projects/{project_id}/generate-steps")
+async def generate_steps(project_id: str):
+    """Generate steps for a project"""
+    try:
+        if project_id not in mcp_server.projects_db:
+            raise HTTPException(status_code=404, detail="Project not found")
+        
+        project = mcp_server.projects_db[project_id]
+        
+        # Use AI to generate steps based on project description
+        available_tools = list(mcp_server.tools_db.values())
+        steps_result = await ollama_client.generate_project_steps(
+            project.description, 
+            [tool.model_dump() for tool in available_tools]
+        )
+        
+        if "error" in steps_result:
+            raise HTTPException(status_code=500, detail=steps_result["error"])
+        
+        # Create steps in the project
+        steps_data = steps_result.get("steps", [])
+        project_steps = []
+        
+        for i, step_data in enumerate(steps_data):
+            step = {
+                "id": f"step_{i+1}",
+                "step_number": i + 1,
+                "title": step_data.get("title", f"Step {i+1}"),
+                "description": step_data.get("description", ""),
+                "required_tools": step_data.get("required_tools", []),
+                "is_active": i == 0,  # First step is active
+                "is_completed": False
+            }
+            project_steps.append(step)
+        
+        # Update project with steps
+        project.steps = project_steps
+        project.total_steps = len(project_steps)
+        project.current_step = 1 if project_steps else None
+        project.status = "in_progress"
+        
+        return {
+            "project_id": project_id,
+            "steps": project_steps,
+            "status": "steps_generated"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/projects")
 async def create_project(request: ProjectCreateRequest):
     """Create a new project"""

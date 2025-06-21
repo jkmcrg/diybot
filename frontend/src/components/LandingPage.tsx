@@ -51,7 +51,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartProject, onOpenModal }
               type="text"
               value={projectInput}
               onChange={(e) => setProjectInput(e.target.value)}
-              placeholder="Describe your project (e.g., 'help me replace my kitchen sink faucet')"
+              placeholder="Describe your project (e.g., 'unclog my kitchen sink', 'build a bookshelf', 'fix squeaky door')"
               className="project-input"
               autoFocus
             />

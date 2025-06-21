@@ -37,39 +37,16 @@ const ProjectExecutionPage: React.FC = () => {
           setProject(currentProject);
           setTools(toolsData);
           
-          // For demo purposes, create some mock steps
-          const mockSteps: Step[] = [
-            {
-              id: 'step_1',
-              step_number: 1,
-              title: 'Prepare Tools and Materials',
-              description: 'Gather all necessary tools and materials. Check that everything is in working condition and make any needed purchases.',
-              required_tools: ['tool_1'],
-              is_active: true,
-              is_completed: false
-            },
-            {
-              id: 'step_2',
-              step_number: 2,
-              title: 'Turn Off Water Supply',
-              description: 'Locate the water shut-off valve under the sink and turn it clockwise to shut off the water supply. Test by turning on the faucet.',
-              required_tools: [],
-              is_active: false,
-              is_completed: false
-            },
-            {
-              id: 'step_3',
-              step_number: 3,
-              title: 'Disconnect Old Faucet',
-              description: 'Use your wrench to disconnect the water supply lines from the old faucet. Remove the mounting nuts that hold the faucet to the sink.',
-              required_tools: ['tool_1'],
-              is_active: false,
-              is_completed: false
-            }
-          ];
-          
-          setSteps(mockSteps);
-          setCurrentStep(mockSteps.find(s => s.is_active) || mockSteps[0]);
+          // Use project steps if they exist, otherwise show message to generate steps
+          if (currentProject.steps && currentProject.steps.length > 0) {
+            setSteps(currentProject.steps);
+            setCurrentStep(currentProject.steps.find((s: Step) => s.is_active) || currentProject.steps[0]);
+          } else {
+            // No steps generated yet - redirect back to planning
+            console.log('No steps found for project, redirecting to planning');
+            navigate(`/project/${projectId}/plan`);
+            return;
+          }
         } else {
           navigate('/');
         }
@@ -141,25 +118,23 @@ const ProjectExecutionPage: React.FC = () => {
 
   return (
     <div className="project-execution-page">
-      <header className="execution-header">
-        <div className="header-content">
-          <button className="back-button" onClick={() => navigate('/')}>
-            ← Back to Home
-          </button>
-          <div className="project-info">
-            <h1>{project.title}</h1>
-            <div className="progress-info">
-              <span>Step {currentStep.step_number} of {steps.length}</span>
-              <div className="progress-bar">
-                <div 
-                  className="progress-fill" 
-                  style={{ width: `${(currentStep.step_number / steps.length) * 100}%` }}
-                />
-              </div>
+      <div className="project-header">
+        <button className="back-button" onClick={() => navigate('/')}>
+          ← Back to Home
+        </button>
+        <div className="project-info">
+          <h1>{project.title}</h1>
+          <div className="progress-info">
+            <span>Step {currentStep.step_number} of {steps.length}</span>
+            <div className="progress-bar">
+              <div 
+                className="progress-fill" 
+                style={{ width: `${(currentStep.step_number / steps.length) * 100}%` }}
+              />
             </div>
           </div>
         </div>
-      </header>
+      </div>
 
       <main className="execution-content">
         <div className="steps-section">
