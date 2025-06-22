@@ -194,6 +194,7 @@ The user is currently working on this step. Focus your responses on helping them
                                         )
                                         mcp_server.tools_db[tool_id] = new_tool
                                         added_tools.append(tool_info["name"])
+                                        print(f"Added tool {tool_info['name']} with ID {tool_id}. Total tools in DB: {len(mcp_server.tools_db)}")
                                     except Exception as e:
                                         print(f"Error adding tool {tool_info['name']}: {e}")
                     
@@ -211,7 +212,7 @@ The user is currently working on this step. Focus your responses on helping them
         """
         Generate project steps based on description and available tools
         """
-        tools_info = "\n".join([f"- ID: {tool['id']}, Name: {tool['name']} ({tool['quantity']}x, {tool['condition']})" for tool in available_tools])
+        tools_info = "\n".join([f"- {tool['name']} ({tool['quantity']}x, {tool['condition']})" for tool in available_tools])
         
         prompt = f"""
         Based on this project: "{project_description}"
@@ -226,11 +227,11 @@ The user is currently working on this step. Focus your responses on helping them
         For each step, specify:
         1. Step title (be specific and actionable)
         2. Detailed description (2-3 sentences with clear instructions)
-        3. Required tools - IMPORTANT: Use the exact tool IDs from the list above, not tool names
+        3. Required tools - IMPORTANT: Use the exact tool NAMES from the list above
         
         CRITICAL REQUIREMENTS:
         - Generate MULTIPLE steps (minimum 3, ideally 4-6 steps)
-        - Use tool IDs (like "tool_1", "tool_2") NOT tool names in required_tools
+        - Use tool NAMES (like "Power Drill", "Wrench Set") in required_tools array
         - Make each step actionable and specific
         - Include preparation, execution, and completion phases
         
@@ -248,12 +249,12 @@ The user is currently working on this step. Focus your responses on helping them
                 {{
                     "title": "Step 1: Preparation", 
                     "description": "Detailed instructions for preparation phase including safety checks...",
-                    "required_tools": ["tool_id_1", "tool_id_2"]
+                    "required_tools": ["Power Drill", "Wrench Set"]
                 }},
                 {{
                     "title": "Step 2: Main Work", 
                     "description": "Detailed instructions for the main execution phase...",
-                    "required_tools": ["tool_id_3"]
+                    "required_tools": ["Hammer"]
                 }},
                 {{
                     "title": "Step 3: Finishing", 
@@ -263,7 +264,7 @@ The user is currently working on this step. Focus your responses on helping them
             ]
         }}
         
-        Generate AT LEAST 3 steps. Use tool IDs, not names.
+        Generate AT LEAST 3 steps. Use exact tool NAMES from the available tools list.
         """
         
         try:

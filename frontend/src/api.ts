@@ -43,7 +43,9 @@ export const api = {
     if (!response.ok) {
       throw new Error(`Failed to fetch tools: ${response.statusText}`);
     }
-    return response.json();
+    const tools = await response.json();
+    console.log('API getTools returned:', tools);
+    return tools;
   },
 
   // Get house objects

@@ -46,10 +46,52 @@ async def root():
 async def health_check():
     return {"status": "healthy"}
 
+@app.get("/debug/mcp-state")
+async def debug_mcp_state():
+    """Debug endpoint to check MCP server state"""
+    return {
+        "tools_count": len(mcp_server.tools_db),
+        "tools_ids": list(mcp_server.tools_db.keys()),
+        "house_objects_count": len(mcp_server.house_objects_db),
+        "projects_count": len(mcp_server.projects_db),
+        "mcp_server_id": id(mcp_server)
+    }
+
+@app.post("/debug/add-test-tool")
+async def add_test_tool():
+    """Debug endpoint to manually add a test tool"""
+    import uuid
+    from models import Tool, ToolCondition
+    
+    tool_id = str(uuid.uuid4())
+    test_tool = Tool(
+        id=tool_id,
+        name="Debug Test Tool",
+        category="Test",
+        quantity=1,
+        condition=ToolCondition.WORKING,
+        icon_keywords=["test"],
+        properties={}
+    )
+    
+    print(f"Adding test tool with ID {tool_id} to MCP server {id(mcp_server)}")
+    mcp_server.tools_db[tool_id] = test_tool
+    print(f"Tool added. Total tools: {len(mcp_server.tools_db)}")
+    
+    return {
+        "message": "Test tool added",
+        "tool_id": tool_id,
+        "total_tools": len(mcp_server.tools_db)
+    }
+
 @app.get("/api/tools")
 async def get_tools():
     """Get all tools from inventory"""
-    return list(mcp_server.tools_db.values())
+    tools_list = list(mcp_server.tools_db.values())
+    print(f"API tools endpoint called. MCP tools DB has {len(mcp_server.tools_db)} tools")
+    print(f"Tools in DB: {list(mcp_server.tools_db.keys())}")
+    print(f"Returning {len(tools_list)} tools: {[tool.name for tool in tools_list]}")
+    return [tool.model_dump() for tool in tools_list]
 
 @app.get("/api/house-objects")
 async def get_house_objects():
@@ -220,12 +262,16 @@ async def websocket_endpoint(websocket: WebSocket):
             context = message_data.get('context', {})
             conversation_history = context.get('conversation_history', [])
             
+            print(f"WebSocket using MCP server ID: {id(mcp_server)}, tools count before: {len(mcp_server.tools_db)}")
+            
             ai_response = await ollama_client.chat_with_mcp(
                 message_data.get('content', ''),
                 context=context,
                 mcp_server=mcp_server,
                 conversation_history=conversation_history
             )
+            
+            print(f"Tools count after AI response: {len(mcp_server.tools_db)}")
             
             response = {
                 "type": "ai_response",
