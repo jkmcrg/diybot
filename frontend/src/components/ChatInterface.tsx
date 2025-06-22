@@ -102,7 +102,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       content: inputValue,
       context: {
         project_id: projectId,
-        step_id: stepId
+        step_id: stepId,
+        conversation_history: messages.map(msg => ({
+          type: msg.type,
+          content: msg.content
+        }))
       }
     };
 

@@ -133,7 +133,6 @@ async def create_project(request: ProjectCreateRequest):
             status=ProjectStatus.PLANNING,
             created_at=datetime.now().isoformat()
         )
-        mcp_server.projects_db[project_id] = new_project
         
         # Get AI response for initial project discovery - analyze project and determine likely tools needed
         ai_response = await ollama_client.chat_with_mcp(
@@ -145,6 +144,10 @@ async def create_project(request: ProjectCreateRequest):
             },
             mcp_server=mcp_server
         )
+        
+        # Store the initial AI message in the project
+        new_project.initial_ai_message = ai_response
+        mcp_server.projects_db[project_id] = new_project
         
         return {
             "project_id": project_id,
@@ -190,10 +193,14 @@ async def websocket_endpoint(websocket: WebSocket):
             message_data = json.loads(data)
             
             # Get AI response
+            context = message_data.get('context', {})
+            conversation_history = context.get('conversation_history', [])
+            
             ai_response = await ollama_client.chat_with_mcp(
                 message_data.get('content', ''),
-                context=message_data.get('context'),
-                mcp_server=mcp_server
+                context=context,
+                mcp_server=mcp_server,
+                conversation_history=conversation_history
             )
             
             response = {

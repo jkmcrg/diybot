@@ -8,7 +8,7 @@ class OllamaClient:
         self.base_url = base_url
         self.model = "mistral:instruct"
     
-    async def chat_with_mcp(self, message: str, context: Optional[Dict] = None, mcp_server=None) -> str:
+    async def chat_with_mcp(self, message: str, context: Optional[Dict] = None, mcp_server=None, conversation_history: Optional[List[Dict]] = None) -> str:
         """
         Chat with Ollama with enhanced MCP integration for tool discovery
         """
@@ -71,6 +71,12 @@ Always be conversational and helpful. Announce when you're updating inventories 
                         "role": "system", 
                         "content": f"Current project context: {json.dumps(context)}"
                     })
+            
+            # Add conversation history if provided
+            if conversation_history:
+                for hist_msg in conversation_history:
+                    role = "assistant" if hist_msg["type"] == "ai" else "user"
+                    messages.append({"role": role, "content": hist_msg["content"]})
             
             messages.append({"role": "user", "content": message})
             

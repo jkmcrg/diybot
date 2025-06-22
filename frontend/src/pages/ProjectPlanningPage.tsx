@@ -12,7 +12,6 @@ const ProjectPlanningPage: React.FC<ProjectPlanningPageProps> = () => {
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showGenerateButton, setShowGenerateButton] = useState(false);
-  const [initialMessage, setInitialMessage] = useState<string>('');
 
   useEffect(() => {
     const loadProject = async () => {
@@ -121,6 +120,7 @@ const ProjectPlanningPage: React.FC<ProjectPlanningPageProps> = () => {
               projectId={projectId}
               onGenerateSteps={handleGenerateSteps}
               showGenerateButton={showGenerateButton}
+              initialMessage={project?.initial_ai_message}
             />
           </div>
         </div>
