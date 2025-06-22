@@ -72,37 +72,59 @@ async def generate_steps(project_id: str):
         
         # Use AI to generate steps based on project description
         available_tools = list(mcp_server.tools_db.values())
+        print(f"Available tools for step generation: {[tool.name for tool in available_tools]}")
+        
         steps_result = await ollama_client.generate_project_steps(
             project.description, 
             [tool.model_dump() for tool in available_tools]
         )
+        
+        print(f"AI step generation result: {steps_result}")
         
         if "error" in steps_result:
             raise HTTPException(status_code=500, detail=steps_result["error"])
         
         # Create steps in the project
         steps_data = steps_result.get("steps", [])
+        print(f"Steps data extracted: {steps_data}")
         project_steps = []
         
         from models import ProjectStep
         
-        for i, step_data in enumerate(steps_data):
-            step = ProjectStep(
-                id=f"step_{i+1}",
-                step_number=i + 1,
-                title=step_data.get("title", f"Step {i+1}"),
-                description=step_data.get("description", ""),
-                required_tools=step_data.get("required_tools", []),
-                is_active=i == 0,  # First step is active
+        if not steps_data:
+            print("No steps data found, trying to create fallback steps")
+            # Create a fallback step if AI didn't generate proper steps
+            fallback_step = ProjectStep(
+                id="step_1",
+                step_number=1,
+                title="Begin Project",
+                description=f"Start working on: {project.description}",
+                required_tools=[],
+                is_active=True,
                 is_completed=False
             )
-            project_steps.append(step)
+            project_steps.append(fallback_step)
+        else:
+            for i, step_data in enumerate(steps_data):
+                print(f"Creating step {i+1}: {step_data}")
+                step = ProjectStep(
+                    id=f"step_{i+1}",
+                    step_number=i + 1,
+                    title=step_data.get("title", f"Step {i+1}"),
+                    description=step_data.get("description", ""),
+                    required_tools=step_data.get("required_tools", []),
+                    is_active=i == 0,  # First step is active
+                    is_completed=False
+                )
+                project_steps.append(step)
         
         # Update project with steps
         project.steps = project_steps
         project.total_steps = len(project_steps)
         project.current_step = 1 if project_steps else None
         project.status = "in_progress"
+        
+        print(f"Project updated with {len(project_steps)} steps, status: {project.status}")
         
         return {
             "project_id": project_id,

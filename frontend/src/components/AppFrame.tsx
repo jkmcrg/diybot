@@ -49,6 +49,7 @@ const AppFrame: React.FC<AppFrameProps> = ({ children, showNavigation = true }) 
   const [tools, setTools] = useState<Tool[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState<string | null>(null);
 
   // Load data from API on mount
   useEffect(() => {
@@ -74,12 +75,43 @@ const AppFrame: React.FC<AppFrameProps> = ({ children, showNavigation = true }) 
     loadData();
   }, []);
 
-  const handleOpenModal = (modalType: 'house' | 'toolroom' | 'projects') => {
+  const handleOpenModal = async (modalType: 'house' | 'toolroom' | 'projects') => {
     setActiveModal(modalType);
+    
+    // Refresh data when opening modal to get latest updates
+    setRefreshing(modalType);
+    try {
+      if (modalType === 'toolroom') {
+        const toolsData = await api.getTools();
+        setTools(toolsData);
+      } else if (modalType === 'house') {
+        const houseData = await api.getHouseObjects();
+        setHouseObjects(houseData);
+      } else if (modalType === 'projects') {
+        const projectsData = await api.getProjects();
+        setProjects(projectsData);
+      }
+    } catch (error) {
+      console.error(`Failed to refresh ${modalType} data:`, error);
+    } finally {
+      setRefreshing(null);
+    }
   };
 
   const handleCloseModal = () => {
     setActiveModal(null);
+  };
+
+  const handleRefreshToolroom = async () => {
+    setRefreshing('toolroom');
+    try {
+      const toolsData = await api.getTools();
+      setTools(toolsData);
+    } catch (error) {
+      console.error('Failed to refresh toolroom:', error);
+    } finally {
+      setRefreshing(null);
+    }
   };
 
   const handleSelectProject = (projectId: string) => {
@@ -152,7 +184,13 @@ const AppFrame: React.FC<AppFrameProps> = ({ children, showNavigation = true }) 
         onClose={handleCloseModal}
         title="Toolroom"
       >
-        <ToolroomModal tools={tools} />
+        {refreshing === 'toolroom' ? (
+          <div style={{ padding: '2rem', textAlign: 'center' }}>
+            <p>Refreshing toolroom...</p>
+          </div>
+        ) : (
+          <ToolroomModal tools={tools} onRefresh={handleRefreshToolroom} />
+        )}
       </Modal>
 
       <Modal

@@ -86,7 +86,23 @@ const ProjectExecutionPage: React.FC = () => {
   };
 
   const getToolById = (toolId: string) => {
-    return tools.find(tool => tool.id === toolId);
+    // First try to find by ID
+    let tool = tools.find(tool => tool.id === toolId);
+    
+    // If not found by ID, try to find by name (in case the AI returned names instead of IDs)
+    if (!tool) {
+      tool = tools.find(tool => tool.name.toLowerCase() === toolId.toLowerCase());
+    }
+    
+    // If still not found, try partial name matching
+    if (!tool) {
+      tool = tools.find(tool => 
+        tool.name.toLowerCase().includes(toolId.toLowerCase()) ||
+        toolId.toLowerCase().includes(tool.name.toLowerCase())
+      );
+    }
+    
+    return tool;
   };
 
   const getStepStatus = (step: Step) => {
@@ -154,6 +170,7 @@ const ProjectExecutionPage: React.FC = () => {
                 <div className="tools-list">
                   {currentStep.required_tools.map(toolId => {
                     const tool = getToolById(toolId);
+                    console.log('Looking for tool:', toolId, 'Found:', tool, 'Available tools:', tools.map(t => t.name));
                     return tool ? (
                       <div key={toolId} className="tool-item">
                         <span className="tool-icon">🔧</span>
@@ -162,7 +179,15 @@ const ProjectExecutionPage: React.FC = () => {
                           <span className="tool-condition">({tool.condition})</span>
                         </div>
                       </div>
-                    ) : null;
+                    ) : (
+                      <div key={toolId} className="tool-item missing">
+                        <span className="tool-icon">❌</span>
+                        <div className="tool-details">
+                          <span className="tool-name">{toolId} (not found)</span>
+                          <span className="tool-condition">(missing from inventory)</span>
+                        </div>
+                      </div>
+                    );
                   })}
                 </div>
               </div>

@@ -51,8 +51,15 @@ const ProjectPlanningPage: React.FC<ProjectPlanningPageProps> = () => {
       const result = await api.generateSteps(projectId!);
       console.log('Steps generated:', result);
       
-      // Navigate to execution page
-      navigate(`/project/${projectId}/execute`);
+      // Check if steps were actually created
+      if (result.steps && result.steps.length > 0) {
+        console.log(`Successfully generated ${result.steps.length} steps, navigating to execution`);
+        // Navigate to execution page
+        navigate(`/project/${projectId}/execute`);
+      } else {
+        console.error('No steps were generated:', result);
+        alert('No steps were generated. Please try again or check the backend logs.');
+      }
     } catch (error) {
       console.error('Failed to generate steps:', error);
       alert('Failed to generate steps. Please try again.');

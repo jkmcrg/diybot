@@ -24,21 +24,16 @@ DISCOVERY PHASE GOALS:
 4. Focus on the exact tools this project requires
 
 IMPORTANT TOOL DISCOVERY PROCESS:
-- Ask about specific tools needed for this project type
-- When user says they have a tool (like "I have a drill"), I will automatically add it to their inventory
-- Don't ask generic questions - focus on what THIS project needs
+- Analyze the project type and think about what tools are typically needed
+- Ask specific questions about tools they'll need for this project
+- When user says they have a tool, I will automatically add it to their inventory
 - Be conversational and encouraging
+- Don't ask generic questions - focus on what THIS project needs
 
 Current project: {context.get('project_description', 'No description yet')}
 Project ID: {context.get('project_id', 'Unknown')}
 
-EXAMPLE DISCOVERY FLOW:
-- Analyze the project type and think about required tools
-- Ask specific questions like "Do you have a drill?" or "What about a wrench set?"
-- When they confirm they have tools, I'll add them to the inventory
-- Continue until you understand their tool availability
-
-Focus on discovery, not step generation yet!"""
+Start by analyzing this project and asking specific tool-related questions. Focus on discovery, not step generation yet!"""
             elif context and context.get("step_id"):
                 system_prompt = """You are DIY Bot in STEP EXECUTION mode. You're helping the user complete a specific step of their DIY project.
 
@@ -216,29 +211,59 @@ The user is currently working on this step. Focus your responses on helping them
         """
         Generate project steps based on description and available tools
         """
-        tools_info = "\n".join([f"- {tool['name']} ({tool['quantity']}x, {tool['condition']})" for tool in available_tools])
+        tools_info = "\n".join([f"- ID: {tool['id']}, Name: {tool['name']} ({tool['quantity']}x, {tool['condition']})" for tool in available_tools])
         
         prompt = f"""
         Based on this project: "{project_description}"
         And these available tools:
         {tools_info}
         
-        Generate a detailed step-by-step plan. For each step, specify:
-        1. Step title
-        2. Detailed description
-        3. Required tools (only from available tools)
+        Generate a comprehensive step-by-step plan with AT LEAST 3-5 detailed steps. Break down the project into logical phases:
+        1. Preparation/planning steps
+        2. Main execution steps  
+        3. Finishing/cleanup steps
         
-        Format as JSON with this structure:
+        For each step, specify:
+        1. Step title (be specific and actionable)
+        2. Detailed description (2-3 sentences with clear instructions)
+        3. Required tools - IMPORTANT: Use the exact tool IDs from the list above, not tool names
+        
+        CRITICAL REQUIREMENTS:
+        - Generate MULTIPLE steps (minimum 3, ideally 4-6 steps)
+        - Use tool IDs (like "tool_1", "tool_2") NOT tool names in required_tools
+        - Make each step actionable and specific
+        - Include preparation, execution, and completion phases
+        
+        Example for a typical DIY project:
+        Step 1: Gather materials and prepare workspace
+        Step 2: Measure and mark locations  
+        Step 3: Main installation/construction work
+        Step 4: Testing and adjustments
+        Step 5: Cleanup and final inspection
+        
+        Format as JSON with this exact structure:
         {{
             "title": "Project Title",
             "steps": [
                 {{
-                    "title": "Step 1 Title",
-                    "description": "Detailed instructions...",
-                    "required_tools": ["tool_id1", "tool_id2"]
+                    "title": "Step 1: Preparation", 
+                    "description": "Detailed instructions for preparation phase including safety checks...",
+                    "required_tools": ["tool_id_1", "tool_id_2"]
+                }},
+                {{
+                    "title": "Step 2: Main Work", 
+                    "description": "Detailed instructions for the main execution phase...",
+                    "required_tools": ["tool_id_3"]
+                }},
+                {{
+                    "title": "Step 3: Finishing", 
+                    "description": "Detailed instructions for completion and cleanup...",
+                    "required_tools": []
                 }}
             ]
         }}
+        
+        Generate AT LEAST 3 steps. Use tool IDs, not names.
         """
         
         try:
@@ -254,6 +279,7 @@ The user is currently working on this step. Focus your responses on helping them
             if response.status_code == 200:
                 result = response.json()
                 ai_response = result["response"]
+                print(f"Raw AI response for step generation: {ai_response}")
                 
                 # Try to parse JSON from response
                 try:
@@ -262,13 +288,19 @@ The user is currently working on this step. Focus your responses on helping them
                     end_idx = ai_response.rfind('}') + 1
                     if start_idx >= 0 and end_idx > start_idx:
                         json_str = ai_response[start_idx:end_idx]
-                        return json.loads(json_str)
-                except:
-                    pass
+                        parsed_result = json.loads(json_str)
+                        print(f"Successfully parsed JSON: {parsed_result}")
+                        return parsed_result
+                    else:
+                        print("No valid JSON found in AI response")
+                except Exception as e:
+                    print(f"JSON parsing error: {e}")
                 
                 # Fallback: return raw response
-                return {"title": "Generated Project", "raw_response": ai_response}
+                print("Using fallback response format")
+                return {"title": "Generated Project", "raw_response": ai_response, "steps": []}
             
+            print(f"AI request failed with status: {response.status_code}")
             return {"error": f"AI request failed: {response.status_code}"}
             
         except Exception as e:

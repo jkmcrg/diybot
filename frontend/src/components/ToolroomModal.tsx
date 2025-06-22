@@ -13,9 +13,10 @@ interface Tool {
 
 interface ToolroomModalProps {
   tools: Tool[];
+  onRefresh?: () => void;
 }
 
-const ToolroomModal: React.FC<ToolroomModalProps> = ({ tools }) => {
+const ToolroomModal: React.FC<ToolroomModalProps> = ({ tools, onRefresh }) => {
   const getConditionColor = (condition: Tool['condition']) => {
     switch (condition) {
       case 'working': return '#28a745';
@@ -36,6 +37,23 @@ const ToolroomModal: React.FC<ToolroomModalProps> = ({ tools }) => {
 
   return (
     <div className="inventory-modal">
+      {onRefresh && (
+        <div style={{ marginBottom: '1rem', textAlign: 'right' }}>
+          <button 
+            onClick={onRefresh}
+            style={{ 
+              padding: '0.5rem 1rem', 
+              background: '#007bff', 
+              color: 'white', 
+              border: 'none', 
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            🔄 Refresh
+          </button>
+        </div>
+      )}
       {tools.length === 0 ? (
         <div className="empty-state">
           <p>No tools in your toolroom yet.</p>
