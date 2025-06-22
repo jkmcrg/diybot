@@ -15,7 +15,6 @@
 
 .nav-content {
   width: 100%;
-  padding: 0 2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -32,6 +31,7 @@
   padding: 0.5rem;
   border-radius: 4px;
   transition: all 0.2s ease;
+  margin-left: 1rem;
 }
 
 .nav-brand:hover,
@@ -43,6 +43,7 @@
 .nav-buttons {
   display: flex;
   gap: 1rem;
+  margin-right: 1rem;
 }
 
 .nav-button {
