@@ -90,12 +90,14 @@
 .message.user .message-content {
   background: #007bff;
   color: white;
+  text-align: right;
 }
 
 .message.ai .message-content {
   background: #f1f3f4;
   color: #2c3e50;
   border: 1px solid #e9ecef;
+  text-align: left;
 }
 
 .message-timestamp {

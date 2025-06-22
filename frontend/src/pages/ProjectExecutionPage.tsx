@@ -181,8 +181,19 @@ const ProjectExecutionPage: React.FC = () => {
 
           <div className="chat-section">
             <ChatInterface 
+              key={currentStep.id} // Force reset when step changes
               projectId={projectId}
               stepId={currentStep.id}
+              initialMessage={`I'm here to help you with Step ${currentStep.step_number}: ${currentStep.title}. 
+
+${currentStep.description}
+
+${currentStep.required_tools.length > 0 ? `You'll need these tools: ${currentStep.required_tools.map(toolId => {
+                const tool = getToolById(toolId);
+                return tool ? tool.name : toolId;
+              }).join(', ')}.` : 'No specific tools required for this step.'}
+
+If you encounter any issues, need clarification, or if tools break during this step, just let me know! I can help troubleshoot or add replacement steps as needed.`}
             />
           </div>
         </div>

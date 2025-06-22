@@ -84,16 +84,18 @@ async def generate_steps(project_id: str):
         steps_data = steps_result.get("steps", [])
         project_steps = []
         
+        from models import ProjectStep
+        
         for i, step_data in enumerate(steps_data):
-            step = {
-                "id": f"step_{i+1}",
-                "step_number": i + 1,
-                "title": step_data.get("title", f"Step {i+1}"),
-                "description": step_data.get("description", ""),
-                "required_tools": step_data.get("required_tools", []),
-                "is_active": i == 0,  # First step is active
-                "is_completed": False
-            }
+            step = ProjectStep(
+                id=f"step_{i+1}",
+                step_number=i + 1,
+                title=step_data.get("title", f"Step {i+1}"),
+                description=step_data.get("description", ""),
+                required_tools=step_data.get("required_tools", []),
+                is_active=i == 0,  # First step is active
+                is_completed=False
+            )
             project_steps.append(step)
         
         # Update project with steps
@@ -104,7 +106,7 @@ async def generate_steps(project_id: str):
         
         return {
             "project_id": project_id,
-            "steps": project_steps,
+            "steps": [step.model_dump() for step in project_steps],
             "status": "steps_generated"
         }
         

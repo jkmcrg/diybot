@@ -15,26 +15,47 @@ class OllamaClient:
         try:
             # Enhanced system prompt for project discovery phase
             if context and context.get("phase") == "discovery":
-                system_prompt = """You are DIY Bot in PROJECT DISCOVERY mode. Your job is to thoroughly understand the user's DIY project before generating any steps.
+                system_prompt = f"""You are DIY Bot in PROJECT DISCOVERY mode. Your job is to thoroughly understand the user's DIY project before generating any steps.
 
 DISCOVERY PHASE GOALS:
 1. Ask specific questions about their project scope and requirements
-2. Understand what tools they'll need (don't assume - ask!)
-3. When they mention tools, check their toolroom inventory
-4. Add any new tools they mention to their inventory
-5. Only suggest step generation when you have enough information
+2. Understand what tools they'll need for THIS specific project type
+3. When they mention having tools, I will add them to their toolroom inventory automatically
+4. Focus on the exact tools this project requires
 
-IMPORTANT: You have direct access to their toolroom through these functions:
-- To check existing tools: Look up their current toolroom inventory
-- To add tools they mention: Add them to their toolroom immediately
-- To verify tool availability: Check quantities and conditions
-
-Be conversational and thorough. Ask follow-up questions. When they mention having a tool, add it to their inventory and confirm it's been added.
+IMPORTANT TOOL DISCOVERY PROCESS:
+- Ask about specific tools needed for this project type
+- When user says they have a tool (like "I have a drill"), I will automatically add it to their inventory
+- Don't ask generic questions - focus on what THIS project needs
+- Be conversational and encouraging
 
 Current project: {context.get('project_description', 'No description yet')}
 Project ID: {context.get('project_id', 'Unknown')}
 
+EXAMPLE DISCOVERY FLOW:
+- Analyze the project type and think about required tools
+- Ask specific questions like "Do you have a drill?" or "What about a wrench set?"
+- When they confirm they have tools, I'll add them to the inventory
+- Continue until you understand their tool availability
+
 Focus on discovery, not step generation yet!"""
+            elif context and context.get("step_id"):
+                system_prompt = """You are DIY Bot in STEP EXECUTION mode. You're helping the user complete a specific step of their DIY project.
+
+STEP EXECUTION GOALS:
+1. Help the user complete the current step successfully
+2. Answer questions about techniques, tools, or troubleshooting
+3. Handle tool breakage by inserting replacement steps
+4. Monitor tool inventory and update conditions as needed
+5. Provide encouragement and guidance throughout the step
+
+IMPORTANT CAPABILITIES:
+- If a tool breaks during the step, immediately create a "replace tool" step
+- Update tool conditions in inventory (working → broken, etc.)
+- Add new tools to inventory if the user acquires them
+- Insert additional steps if complications arise
+
+Be supportive and practical. Focus on helping them succeed with the current step."""
             else:
                 system_prompt = """You are DIY Bot, an intelligent assistant that helps users plan and execute DIY projects. 
 
@@ -71,6 +92,28 @@ Always be conversational and helpful. Announce when you're updating inventories 
                         "role": "system", 
                         "content": f"Current project context: {json.dumps(context)}"
                     })
+                
+                # Add specific step context if we're in step execution mode
+                if context.get("step_id") and mcp_server:
+                    # Find the current step and project details
+                    project_id = context.get("project_id")
+                    step_id = context.get("step_id")
+                    if project_id and project_id in mcp_server.projects_db:
+                        project = mcp_server.projects_db[project_id]
+                        current_step = next((step for step in project.steps if step.id == step_id), None)
+                        if current_step:
+                            step_context = f"""
+CURRENT STEP DETAILS:
+- Step {current_step.step_number}: {current_step.title}
+- Description: {current_step.description}
+- Required Tools: {', '.join(current_step.required_tools)}
+- Project: {project.title}
+
+The user is currently working on this step. Focus your responses on helping them complete it successfully."""
+                            messages.append({
+                                "role": "system",
+                                "content": step_context
+                            })
             
             # Add conversation history if provided
             if conversation_history:
@@ -94,17 +137,73 @@ Always be conversational and helpful. Announce when you're updating inventories 
                 result = response.json()
                 ai_response = result["message"]["content"]
                 
-                # Enhanced response with tool inventory awareness
+                # Enhanced response with tool inventory awareness and MCP function calling
                 enhanced_response = ai_response
                 
-                # If this is discovery phase and user mentions tools, suggest adding them
-                if context and context.get("phase") == "discovery" and mcp_server:
-                    # Simple keyword detection for tool mentions
-                    tool_keywords = ["screwdriver", "hammer", "drill", "wrench", "pliers", "saw", "level", "tape measure", "plunger", "snake"]
-                    mentioned_tools = [tool for tool in tool_keywords if tool.lower() in message.lower()]
+                # Parse user message for explicit tool ownership statements
+                has_tool_phrases = ["i have a", "i have", "i've got", "i own", "i got", "yes i have", "yes, i have", "yes i do have", "i do have"]
+                if mcp_server and any(phrase in message.lower() for phrase in has_tool_phrases):
                     
-                    if mentioned_tools:
-                        enhanced_response += f"\n\nI notice you mentioned: {', '.join(mentioned_tools)}. Let me add these to your toolroom inventory so I can track them for this project."
+                    # Extract tool mentions and add them to inventory
+                    tool_mappings = {
+                        "drill": {"name": "Power Drill", "category": "Power Tools"},
+                        "hammer": {"name": "Hammer", "category": "Hand Tools"},
+                        "wrench": {"name": "Wrench Set", "category": "Hand Tools"},
+                        "screwdriver": {"name": "Screwdriver Set", "category": "Hand Tools"},
+                        "saw": {"name": "Hand Saw", "category": "Hand Tools"},
+                        "pliers": {"name": "Pliers", "category": "Hand Tools"},
+                        "level": {"name": "Level", "category": "Measuring Tools"},
+                        "tape measure": {"name": "Tape Measure", "category": "Measuring Tools"},
+                        "plunger": {"name": "Plunger", "category": "Plumbing Tools"},
+                        "socket": {"name": "Socket Set", "category": "Hand Tools"},
+                        "ratchet": {"name": "Ratchet", "category": "Hand Tools"}
+                    }
+                    
+                    added_tools = []
+                    
+                    # Find which ownership phrase was used and look for tools after it
+                    message_lower = message.lower()
+                    ownership_phrase_found = None
+                    phrase_position = -1
+                    
+                    for phrase in has_tool_phrases:
+                        pos = message_lower.find(phrase)
+                        if pos >= 0:
+                            ownership_phrase_found = phrase
+                            phrase_position = pos + len(phrase)
+                            break
+                    
+                    if ownership_phrase_found and phrase_position >= 0:
+                        # Look for tools mentioned after the ownership phrase
+                        text_after_phrase = message_lower[phrase_position:]
+                        
+                        for keyword, tool_info in tool_mappings.items():
+                            if keyword in text_after_phrase:
+                                # Check if tool already exists
+                                existing_tools = list(mcp_server.tools_db.values())
+                                if not any(tool_info["name"].lower() in tool.name.lower() for tool in existing_tools):
+                                    # Add the tool via MCP
+                                    try:
+                                        import uuid
+                                        from models import Tool, ToolCondition
+                                        
+                                        tool_id = str(uuid.uuid4())
+                                        new_tool = Tool(
+                                            id=tool_id,
+                                            name=tool_info["name"],
+                                            category=tool_info["category"],
+                                            quantity=1,
+                                            condition=ToolCondition.WORKING,
+                                            icon_keywords=[keyword],
+                                            properties={}
+                                        )
+                                        mcp_server.tools_db[tool_id] = new_tool
+                                        added_tools.append(tool_info["name"])
+                                    except Exception as e:
+                                        print(f"Error adding tool {tool_info['name']}: {e}")
+                    
+                    if added_tools:
+                        enhanced_response += f"\n\n✅ I've added these tools to your toolroom inventory: {', '.join(added_tools)}. I can now track them for your project!"
                 
                 return enhanced_response
             else:

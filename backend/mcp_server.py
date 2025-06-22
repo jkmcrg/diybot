@@ -20,29 +20,9 @@ class DIYBotMCPServer:
         self._register_tools()
     
     def _init_default_data(self):
-        """Initialize with some default tools and house objects"""
-        # Add some default tools
-        socket_wrench = Tool(
-            id="tool_1",
-            name="Socket Wrench Set",
-            category="Hand Tools",
-            quantity=1,
-            condition=ToolCondition.WORKING,
-            icon_keywords=["wrench", "socket", "ratchet"],
-            properties={"size": "Metric", "pieces": "42"}
-        )
-        self.tools_db[socket_wrench.id] = socket_wrench
-        
-        cutoff_wheels = Tool(
-            id="tool_2",
-            name="Cutoff Wheels",
-            category="Consumables",
-            quantity=3,
-            condition=ToolCondition.WORKING,
-            icon_keywords=["wheel", "cutting", "disc"],
-            properties={"size": "4.5 inch", "grit": "80"}
-        )
-        self.tools_db[cutoff_wheels.id] = cutoff_wheels
+        """Initialize with empty inventories - tools will be added through conversation"""
+        # Start with empty toolroom - tools will be discovered and added through AI conversation
+        pass
     
     def _register_tools(self):
         """Register all MCP tools that AI can call"""
